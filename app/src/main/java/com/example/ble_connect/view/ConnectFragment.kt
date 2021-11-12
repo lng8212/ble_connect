@@ -22,16 +22,19 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.ble_connect.R
 import com.example.ble_connect.apdater.ScanResultAdapter
+import com.example.ble_connect.callback.ItemSelectedCallBack
 import com.example.ble_connect.databinding.FragmentConnectBinding
 
 
-class Connect : Fragment() {
+class ConnectFragment : Fragment() {
 
     private var _binding: FragmentConnectBinding? = null
     private val scanResults = mutableListOf<ScanResult>()
+    private val scanFilters = mutableListOf<ScanFilter>()
     private val scanResultAdapter: ScanResultAdapter by lazy {
-        ScanResultAdapter(data = scanResults)
+        ScanResultAdapter(data = scanResults, callBack = itemSelectedCallBack)
     }
     private val binding get() = _binding!!
     private var isScanning = false
@@ -54,9 +57,7 @@ class Connect : Fragment() {
         .build()
 
 
-    val filter = ScanFilter.Builder().setServiceUuid(
-        ParcelUuid.fromString(MainActivity.ENVIRONMENTAL_SERVICE_UUID)
-    ).build()
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -76,6 +77,10 @@ class Connect : Fragment() {
 
     private fun initView() {
         val linearLayoutManager = LinearLayoutManager(context)
+        val filter = ScanFilter.Builder().setServiceUuid(
+            ParcelUuid.fromString(MainActivity.ENVIRONMENTAL_SERVICE_UUID)
+        ).build()
+        scanFilters.add(filter)
         linearLayoutManager.orientation = LinearLayoutManager.VERTICAL
         binding.listDevice.apply {
             layoutManager = linearLayoutManager
@@ -205,12 +210,36 @@ class Connect : Fragment() {
         }
     }
 
+    private val itemSelectedCB: ItemSelectedCallBack =
+        object : ItemSelectedCallBack {
+            override fun callBackConnectDevice(item: ScanResult) {
+                if (isScanning) {
+                    stopBleScan()
+                }
+
+            }
+
+        }
+    private val itemSelectedCallBack: ItemSelectedCallBack =
+        object : ItemSelectedCallBack {
+            override fun callBackConnectDevice(item: ScanResult) {
+//                Log.d("TAG", "nCallBack: " + item.device.address)\
+                fragmentManager?.beginTransaction()
+                    ?.add(
+                        R.id.mainActivity, ConnectDeviceFragment.newInstance(
+                            itemSelectedCB, item
+                        )
+                    )?.commitNow()
+
+            }
+
+        }
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
 
     companion object {
-        fun newConnect() = Connect()
+        fun newConnect() = ConnectFragment()
     }
 }
